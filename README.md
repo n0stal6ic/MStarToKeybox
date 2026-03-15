@@ -1,6 +1,6 @@
 # MStarToKeybox
-Extracts MStar/MediaTek Widevine L1 keyboxes from raw eMMC dumps and firmware images.
-Only supports **MStar/MediaTek** SoC platforms (LG webOS, Hisense, Sharp, Philips/TPV, etc).
+Extracts MStar/MediaTek Widevine L1 keyboxes and PlayReady passphrases from raw eMMC dumps and firmware images.
+Only supports **MStar/MediaTek** SoC platforms (LG webOS, Hisense, Sharp, Philips/TPV, Panasonic, etc).
 
 ---
 
