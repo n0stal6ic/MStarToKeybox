@@ -147,10 +147,6 @@ Each key gets tested against:
 - ECB
 - CBC with zero IV
 - CBC with first 16 bytes of ciphertext as IV
-- CFB (segment size 128) with zero IV and prefix IV
-- OFB with zero IV and prefix IV
-- CTR with counter starting at 0
-- CTR with counter initialized from first 16 bytes of ciphertext
 
 ## CBC key pairs
 
