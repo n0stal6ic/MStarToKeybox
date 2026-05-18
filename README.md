@@ -225,7 +225,7 @@ python prxtractor.py "" zgpriv_protected.dat
 Override the auto-detected passphrase (useful when the `.so` is stripped):
 
 ```
-python prxtractor.py libplayready.so.0 bgroupcert.dat zgpriv.dat --phrase AsF16eEncr4pt19mt5813
+python prxtractor.py libplayready.so.0 bgroupcert.dat zgpriv.dat --phrase <phrase>
 ```
 
 List the known Panasonic passphrase candidates:
