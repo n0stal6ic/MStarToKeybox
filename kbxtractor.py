@@ -39,15 +39,13 @@ class ScanStats:
     saved: int = 0
 
     def report(self):
-        log.info("\n─────────────────────────────────────────")
-        log.info("  Complete")
-        log.info("─────────────────────────────────────────")
+        log.info("")
+        log.info("Done.")
         log.info(f"  Files scanned      : {self.files_scanned}")
         log.info(f"  Candidates found   : {self.candidates_found}")
         log.info(f"  Filter rejected    : {self.filter_rejected}")
         log.info(f"  Duplicates skipped : {self.duplicates_skipped}")
         log.info(f"  Keyboxes saved     : {self.saved}")
-        log.info("─────────────────────────────────────────")
 
 def clean_hex(s: str) -> bytes:
     s = s.replace("0x", "").replace("0X", "")
@@ -231,7 +229,7 @@ def extract_from_file(
                 with open(out_name, "wb") as out:
                     out.write(block)
 
-                log.info(f"[{os.path.basename(path)} | Hit #{saved}] -> {out_name}  prefix@0x{ppos:X}  postfix@0x{qpos:X}")
+                log.info(f"{os.path.basename(path)} hit #{saved}: saved to {out_name}  (prefix@0x{ppos:X}, postfix@0x{qpos:X})")
 
                 if PRINT_HEXVIEW:
                     log.info(hexview(block, base_offset=ppos, width=HEXVIEW_WIDTH))
@@ -248,7 +246,7 @@ def write_manifest(entries: list, output_dir: str):
     manifest_path = os.path.join(output_dir, "manifest.json")
     with open(manifest_path, "w") as f:
         json.dump(entries, f, indent=2)
-    log.info(f"\nManifest written -> {manifest_path}")
+    log.info(f"\nManifest written to {manifest_path}")
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -273,17 +271,17 @@ def main() -> int:
     parser.add_argument(
         "--no-hexview",
         action="store_true",
-        help="Remove keybox hext dump output."
+        help="Suppress the hex dump of each extracted keybox."
     )
     parser.add_argument(
         "--verbose-filters",
         action="store_true",
-        help="Log candidate rejection reason."
+        help="Log the reason each candidate block is rejected."
     )
     parser.add_argument(
         "--quiet", "-q",
         action="store_true",
-        help="Stop all outputs."
+        help="Suppress all output except errors."
     )
 
     args = parser.parse_args()
@@ -317,9 +315,7 @@ def main() -> int:
         total = 0
         for name in sorted(os.listdir(SCRIPT_DIR)):
             path = os.path.join(SCRIPT_DIR, name)
-            if not os.path.isfile(path):
-                continue
-            if is_skipped_file(path):
+            if not os.path.isfile(path) or is_skipped_file(path):
                 continue
             total += extract_from_file(path, prefix, postfixes, args.output_dir, stats, args.verbose_filters)
         stats.report()
