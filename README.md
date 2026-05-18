@@ -208,6 +208,15 @@ Two paths, picked per-file by inspecting the first 8 bytes:
 - Files starting with `Salted__` are decrypted with OpenSSL `EVP_BytesToKey` (MD5 KDF, AES-256-CBC) using a passphrase. The passphrase is either auto-detected by scanning the supplied `.so` for null-separated `pszBasePhrase` + `pszAdditionalPhrase` strings, or supplied with `--phrase`.
 - Anything else is treated as an RFC 3394 AES-Key-Wrap blob and unwrapped with a KEK derived from the PlayReady Porting Kit hardcoded Transient Key (`8B22...427F`) and Intermediate Key (`9CE9...E136`) via AES-CMAC KDF in counter mode. First 32 bytes of the unwrapped material are written as `zgpriv`.
 
+## Phrase list
+
+Candidate passphrases live in `phrases.txt` next to the script, one per line. The script auto-loads this file and uses it for two things:
+
+1. Hinting candidates when the `.so` contains a known base prefix but the additional tail can't be auto-paired
+2. The `--list-phrases` output
+
+Add new phrases as you discover them from `strings`/binwalk of new `libplayready.so` builds. Point `--phrases-file` at a different file if you keep multiple lists.
+
 ## Usage
 
 Scan a library and decrypt both `.dat` files:
@@ -241,4 +250,5 @@ python prxtractor.py --list-phrases
 | `so_path` | Path to `libplayready.so.0` (or any binary) to scan for passphrases. Optional if you only need to unwrap a `zgpriv_protected.dat`. |
 | `dat_files` | One or more `.dat` files. Format is auto-detected per file. |
 | `--phrase` | Override the auto-detected passphrase. |
-| `--list-phrases` | Print the known passphrase candidates and exit. |
+| `--phrases-file` | Path to a candidate passphrase list (default: `phrases.txt` next to the script). |
+| `--list-phrases` | Print the candidates from the phrase file and exit. |
