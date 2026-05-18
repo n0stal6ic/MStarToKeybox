@@ -8,15 +8,18 @@ Only supports **MStar/MediaTek** SoC platforms (LG webOS, Hisense, Sharp, Philip
 
 Python 3.8+
 
-**kbxtractor** or **kbxdecoder**
+Install everything once:
 
-For WVD generation:
 ```
-pip install pycryptodome requests
+pip install -r requirements.txt
 ```
-```
-pip install pywidevine
-```
+
+This pulls in `pycryptodome`, `requests`, and `pywidevine`.
+
+Per-script breakdown:
+- **kbxtractor** has no external dependencies
+- **kbxdecoder** needs `pycryptodome` for decryption, `requests` for URL key sources, and `pywidevine` for `--extract-wvd`
+- **prxtractor** needs `pycryptodome`
 
 ---
 
@@ -80,7 +83,7 @@ Scans raw eMMC dumps and firmware images for MStar Widevine L1 keyboxes, attempt
 
 ## How?
 
-Attempts to decrypt raw keybox blobs with ECB, CBC, CFB, OFB, and CTR AES modes. Successful decryption find tge `INNER_MSTAR` output tag. Finds the 128-byte Widevine keybox structure, extract Device ID, checks CRC-32, then saves the keyboxes.
+Attempts to decrypt raw keybox blobs with ECB, CBC, CFB, OFB, and CTR AES modes. A successful decryption is recognised by the `INNER_MSTAR` marker. Finds the 128-byte Widevine keybox structure, extracts the Device ID, checks the CRC-32, then saves the keybox.
 
 ## Key sourcing
 
@@ -189,3 +192,53 @@ Force a re-download with `--force-update-keys`.
 | `--no-hexview` | Suppress hex dump output |
 | `--verbose-filters` | Print the reason for rejections |
 | `-q`, `--quiet` | Suppress all output except errors |
+
+---
+
+---
+
+# prxtractor
+
+Extracts PlayReady passphrases from `libplayready.so` and decrypts the associated `bgroupcert.dat` / `zgpriv.dat` files. Also unwraps `zgpriv_protected.dat` for OEMs that reused the PlayReady Porting Kit default Transient/Intermediate keys.
+
+## How?
+
+Two paths, picked per-file by inspecting the first 8 bytes:
+
+- Files starting with `Salted__` are decrypted with OpenSSL `EVP_BytesToKey` (MD5 KDF, AES-256-CBC) using a passphrase. The passphrase is either auto-detected by scanning the supplied `.so` for null-separated `pszBasePhrase` + `pszAdditionalPhrase` strings, or supplied with `--phrase`.
+- Anything else is treated as an RFC 3394 AES-Key-Wrap blob and unwrapped with a KEK derived from the PlayReady Porting Kit hardcoded Transient Key (`8B22...427F`) and Intermediate Key (`9CE9...E136`) via AES-CMAC KDF in counter mode. First 32 bytes of the unwrapped material are written as `zgpriv`.
+
+## Usage
+
+Scan a library and decrypt both `.dat` files:
+
+```
+python prxtractor.py libplayready.so.0 bgroupcert.dat zgpriv.dat
+```
+
+Unwrap a `zgpriv_protected.dat` (no `.so` needed, no passphrase needed):
+
+```
+python prxtractor.py "" zgpriv_protected.dat
+```
+
+Override the auto-detected passphrase (useful when the `.so` is stripped):
+
+```
+python prxtractor.py libplayready.so.0 bgroupcert.dat zgpriv.dat --phrase AsF16eEncr4pt19mt5813
+```
+
+List the known Panasonic passphrase candidates:
+
+```
+python prxtractor.py --list-phrases
+```
+
+## All flags
+
+| Flag | Description |
+|---|---|
+| `so_path` | Path to `libplayready.so.0` (or any binary) to scan for passphrases. Optional if you only need to unwrap a `zgpriv_protected.dat`. |
+| `dat_files` | One or more `.dat` files. Format is auto-detected per file. |
+| `--phrase` | Override the auto-detected passphrase. |
+| `--list-phrases` | Print the known passphrase candidates and exit. |
