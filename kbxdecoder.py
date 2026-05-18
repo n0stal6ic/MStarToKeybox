@@ -67,9 +67,8 @@ class ScanStats:
     wvd_generated: int = 0
 
     def report(self):
-        log.info("\n─────────────────────────────────────────")
-        log.info("  Complete")
-        log.info("─────────────────────────────────────────")
+        log.info("")
+        log.info("Done.")
         log.info(f"  Files scanned      : {self.files_scanned}")
         log.info(f"  Candidates found   : {self.candidates_found}")
         log.info(f"  Filter rejected    : {self.filter_rejected}")
@@ -79,7 +78,6 @@ class ScanStats:
         log.info(f"  Decrypt failed     : {self.decrypt_failed}")
         if self.wvd_generated:
             log.info(f"  WVD files made     : {self.wvd_generated}")
-        log.info("─────────────────────────────────────────")
 
 
 def clean_hex(s: str) -> bytes:
@@ -194,7 +192,7 @@ def _save_cache(cache_path: str, keys: List[str], sources: List[str]) -> None:
         f.write("\n")
         for k in keys:
             f.write(k + "\n")
-    log.info(f"  [i] Key cache updated -> {cache_path} ({len(keys)} keys)")
+    log.info(f"  Key cache updated: {cache_path} ({len(keys)} keys)")
 
 
 @dataclass
@@ -221,7 +219,7 @@ def build_key_database(
             file_sources.append(arg)
         else:
             log.warning(
-                f"  [!] --key argument not recognised as hex, URL, or file: {arg!r}"
+                f"  Warning: --key argument not recognised as hex, URL, or file: {arg!r}"
             )
     seen_ecb = set()
     seen_cbc = set()
@@ -249,18 +247,18 @@ def build_key_database(
                 _add_ecb(k)
             for k, iv in _parse_cbc_keys_from_text(text):
                 _add_cbc(k, iv)
-            log.info(f"  [i] Loaded keys from file: {fpath}")
+            log.info(f"  Loaded keys from file: {fpath}")
         except Exception as e:
-            log.warning(f"  [!] Could not read key file {fpath}: {e}")
+            log.warning(f"  Could not read key file {fpath}: {e}")
     if not url_sources:
         return db
     if not HAS_REQUESTS:
-        log.warning("  [!] 'requests' not installed, cannot download key URLs.")
-        log.warning("      Install with: pip install requests")
+        log.warning("  'requests' not installed, cannot download key URLs.")
+        log.warning("  Install it with: pip install requests")
         return db
     cache_file = _cache_path(output_dir)
     if not force_update and _cache_is_fresh(cache_file):
-        log.info(f"  [i] Using cached keys: {cache_file}")
+        log.info(f"  Using cached keys from {cache_file}")
         for k in _load_cache(cache_file):
             _add_ecb(k)
         return db
@@ -277,10 +275,10 @@ def build_key_database(
             for k, iv in new_cbc:
                 _add_cbc(k, iv)
             log.info(
-                f"  [i] Downloaded {len(new_keys)} ECB + {len(new_cbc)} CBC keys from {url}"
+                f"  Downloaded {len(new_keys)} ECB + {len(new_cbc)} CBC keys from {url}"
             )
         except Exception as e:
-            log.warning(f"  [!] Failed to download {url}: {e}")
+            log.warning(f"  Failed to download {url}: {e}")
     _save_cache(cache_file, downloaded, url_sources)
     return db
 
@@ -663,9 +661,9 @@ def extract_from_file(
                 raw_path = os.path.join(output_dir, raw_stem + ".bin")
                 with open(raw_path, "wb") as out:
                     out.write(block)
-                log.info(f"[{os.path.basename(path)} | Hit #{saved}]")
-                log.info(f"  Raw keybox   -> {raw_path}")
-                log.info(f"  Offset       : 0x{ppos:X}  (postfix @ 0x{qpos:X})")
+                log.info(f"{os.path.basename(path)} hit #{saved}:")
+                log.info(f"  Raw keybox saved to {raw_path}")
+                log.info(f"  Offset 0x{ppos:X} (postfix at 0x{qpos:X})")
                 if PRINT_HEXVIEW:
                     log.info(hexview(block, base_offset=ppos, width=HEXVIEW_WIDTH))
                     log.info("")
@@ -685,26 +683,26 @@ def extract_from_file(
                 if not no_decrypt:
                     if not HAS_CRYPTO:
                         log.warning(
-                            "  [!] pycryptodome not installed, skipping decryption."
+                            "  pycryptodome not installed, skipping decryption."
                         )
-                        log.warning("      Install with: pip install pycryptodome")
+                        log.warning("  Install it with: pip install pycryptodome")
                     elif not (db.ecb or db.cbc):
                         log.warning(
-                            "  [!] No keys provided, use --key to supply keys."
+                            "  No keys provided. Use --key to supply keys."
                         )
                     else:
                         ecb_count = len(db.ecb)
                         cbc_count = len(db.cbc)
                         log.info(
-                            f"  [~] Trying {ecb_count} ECB + {cbc_count} CBC key(s) across 5 AES modes..."
+                            f"  Trying {ecb_count} ECB and {cbc_count} CBC key(s) across 5 AES modes..."
                         )
                         results = decrypt_blob(
                             block, db, stop_on_first=stop_on_first_key
                         )
                         if not results:
                             stats.decrypt_failed += 1
-                            log.info("  [-] No matching decryption key found.")
-                            log.info("      Supply keys with --key <hex|file|url>")
+                            log.info("  No matching decryption key found.")
+                            log.info("  Supply more keys with --key <hex|file|url>.")
                         else:
                             for r_idx, r in enumerate(results):
                                 stats.decrypted += 1
@@ -731,9 +729,9 @@ def extract_from_file(
                                     if r.iv_used
                                     else ""
                                 )
-                                log.info(f"  [+] Decrypted    -> {dec_path}")
-                                log.info(f"  [+] Key          : {r.key_hex}")
-                                log.info(f"  [+] Mode         : {r.mode_name}{iv_info}")
+                                log.info(f"  Decrypted payload saved to {dec_path}")
+                                log.info(f"  Key   : {r.key_hex}")
+                                log.info(f"  Mode  : {r.mode_name}{iv_info}")
                                 entry["decrypted"] = True
                                 entry["decrypt_key"] = r.key_hex
                                 entry["decrypt_mode"] = r.mode_name
@@ -741,7 +739,7 @@ def extract_from_file(
                                 if wvkb:
                                     crc_status = "OK" if wvkb.crc_valid else "MISMATCH"
                                     log.info(
-                                        f"  [+] Device ID    : {dev_id_str}  (CRC: {crc_status})"
+                                        f"  Device ID : {dev_id_str} (CRC: {crc_status})"
                                     )
                                     entry["wvkb_device_id"] = dev_id_str
                                     entry["wvkb_crc_valid"] = wvkb.crc_valid
@@ -750,14 +748,14 @@ def extract_from_file(
                                     )
                                     with open(wvkb_path, "wb") as wf:
                                         wf.write(wvkb.raw)
-                                    log.info(f"  [+] WV Keybox    -> {wvkb_path}")
+                                    log.info(f"  Widevine keybox saved to {wvkb_path}")
                                 if extract_wvd:
                                     if not HAS_PYWIDEVINE:
                                         log.info(
-                                            "  [i] pywidevine not installed, cannot generate WVD."
+                                            "  pywidevine not installed, cannot generate WVD."
                                         )
                                         log.info(
-                                            "      Install with: pip install pywidevine"
+                                            "  Install it with: pip install pywidevine"
                                         )
                                     else:
                                         client_id_path = os.path.join(
@@ -784,22 +782,22 @@ def extract_from_file(
                                                 stats.wvd_generated += 1
                                                 entry["wvd_file"] = wvd_path
                                                 log.info(
-                                                    f"  [+] WVD          -> {wvd_path}"
+                                                    f"  WVD saved to {wvd_path}"
                                                 )
                                             else:
-                                                log.info("  [!] WVD generation failed.")
+                                                log.info("  WVD generation failed.")
                                         else:
                                             log.info(
-                                                "  [i] WVD generation requires provisioned client_id.bin"
+                                                "  WVD generation requires a provisioned client_id.bin"
                                             )
                                             log.info(
-                                                "      + private_key.pem in the same directory as this script."
+                                                "  and private_key.pem in the same directory as this script."
                                             )
                                             log.info(
-                                                "      The raw keybox has been saved, use it to provision"
+                                                "  The raw keybox has been saved. Use it to provision"
                                             )
                                             log.info(
-                                                "      the device and obtain these files first."
+                                                "  the device and obtain these two files first."
                                             )
                 manifest_entries.append(entry)
                 log.info("")
@@ -814,13 +812,13 @@ def write_manifest(entries: list, output_dir: str):
     path = os.path.join(output_dir, "manifest.json")
     with open(path, "w") as f:
         json.dump(entries, f, indent=2)
-    log.info(f"Manifest written -> {path}")
+    log.info(f"Manifest written to {path}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="kbxdecoder",
-        description="Extract and decode MStar/MediaTek Widevine keyboxes from eMMC dumps and firmware images. Decryption from ECB, CBC, CFB, OFB, and CTR modes using supplied keys (hex string, local file, or URL).",
+        description="Extract and decode MStar/MediaTek Widevine keyboxes from eMMC dumps and firmware images. Decryption using supplied keys (hex string, local file, or URL).",
     )
     parser.add_argument("files", nargs="*", help="One or more binary files to scan.")
     parser.add_argument(
@@ -896,26 +894,26 @@ def main() -> int:
     os.makedirs(args.output_dir, exist_ok=True)
     if not args.quiet and (not args.no_decrypt):
         if not HAS_CRYPTO:
-            log.info("[!] pycryptodome not found, decryption disabled.")
-            log.info("    Install with: pip install pycryptodome")
+            log.info("pycryptodome not found, decryption disabled.")
+            log.info("Install it with: pip install pycryptodome")
         if args.extract_wvd and (not HAS_PYWIDEVINE):
-            log.info("[i] pywidevine not found, WVD generation disabled.")
-            log.info("    Install with: pip install pywidevine")
+            log.info("pywidevine not found, WVD generation disabled.")
+            log.info("Install it with: pip install pywidevine")
         log.info("")
     db = KeyDatabase()
     if not args.no_decrypt and args.key:
-        log.info("[*] Resolving key sources...")
+        log.info("Resolving key sources...")
         db = build_key_database(
             key_args=args.key,
             output_dir=args.output_dir,
             force_update=args.force_update_keys,
             only_custom=args.only_custom,
         )
-        log.info(f"    ECB candidates : {len(db.ecb)}")
-        log.info(f"    CBC pairs      : {len(db.cbc)}")
+        log.info(f"  ECB candidates : {len(db.ecb)}")
+        log.info(f"  CBC pairs      : {len(db.cbc)}")
         log.info("")
     elif not args.no_decrypt and (not args.key):
-        log.info("[!] No keys supplied. Use --key <hex|file|url> to enable decryption.")
+        log.info("No keys supplied. Use --key <hex|file|url> to enable decryption.")
         log.info("")
     stats = ScanStats()
     manifest_entries = []
