@@ -55,7 +55,6 @@ Found keyboxes are saved as:
 ```
 <source>_Keybox.bin
 <source>_Keybox_2.bin
-...
 ```
 
 A hex dump of each hit is printed to the console by default.
@@ -111,13 +110,13 @@ python kbxdecoder.py firmware.bin --key https://example.com/keys.txt
 Scan with a single manual key:
 
 ```
-python kbxdecoder.py firmware.bin --key 1F1E1D1C1B1A19180706050403020100
+python kbxdecoder.py firmware.bin --key <KEY>
 ```
 
 Combine sources:
 
 ```
-python kbxdecoder.py firmware.bin --key https://example.com/keys.txt --key ./extra.txt --key ABC123...
+python kbxdecoder.py firmware.bin --key https://example.com/keys.txt --key ./extra.txt --key <KEY>
 ```
 
 Scan all files in the script's directory:
